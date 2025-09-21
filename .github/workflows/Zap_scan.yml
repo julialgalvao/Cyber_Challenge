@@ -48,10 +48,11 @@ jobs:
         with:
           target: "http://localhost:3000"
           fail_action: false
+          cmd_options: '-a -r zap_report.html'
 
       - name: Upload ZAP report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: zap_report
-          path: zap_scan
+          path: zap_report.html

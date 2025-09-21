@@ -32,9 +32,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install semgrep
 
-      - name: Run Semgrep (default CI rules)
+      - name: Run Semgrep (security + CI rules)
         run: |
-          semgrep --config p/ci --exclude node_modules --sarif-output=semgrep.sarif || true
+          semgrep --config p/ci --config p/security-audit \
+                  --exclude node_modules \
+                  --sarif-output=semgrep.sarif || true
 
       - name: Upload Semgrep SARIF to GitHub Code Scanning
         if: always()
