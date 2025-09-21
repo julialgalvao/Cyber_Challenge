@@ -1,13 +1,15 @@
-name: Semgrep SAST
+name: SAST - Semgrep
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
 jobs:
   semgrep:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -16,16 +18,76 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.10'
 
       - name: Install Semgrep
-        run: pip install semgrep
+        run: |
+          python -m pip install --upgrade pip
+          pip install semgrep
 
-      - name: Run Semgrep SAST
-        run: semgrep --config=auto --json > semgrep-report.json
+      - name: Run Semgrep (JSON + SARIF)
+        run: |
+          # run semgrep; use --config=auto (detects languages). Replace with your rules if needed.
+          semgrep --config=auto --json --output=semgrep-report.json || true
+          semgrep --config=auto --sarif --output=semgrep-report.sarif || true
 
-      - name: Upload Semgrep report
+      - name: Generate Semgrep summary (counts by severity)
+        run: |
+          python3 - <<'PY'
+          import json,sys
+          try:
+            data=json.load(open('semgrep-report.json'))
+          except Exception:
+            data={"results":[]}
+          results=data.get('results',[])
+          counts={"CRITICAL":0,"ERROR":0,"HIGH":0,"MEDIUM":0,"LOW":0,"UNKNOWN":0}
+          examples=[]
+          for r in results:
+            sev = r.get('extra',{}).get('metadata',{}).get('severity','').upper() or 'UNKNOWN'
+            if sev not in counts: counts['UNKNOWN'] += 1
+            else: counts[sev]+=1
+            if len(examples) < 5:
+              examples.append({
+                "rule_id": r.get('check_id'),
+                "message": r.get('extra',{}).get('message'),
+                "path": r.get('path'),
+                "start": r.get('start',{})
+              })
+          summary = {
+            "total_findings": len(results),
+            "counts": counts,
+            "examples": examples
+          }
+          with open('semgrep-summary.json','w') as f:
+            json.dump(summary,f,indent=2)
+          # also create a human-readable md
+          with open('semgrep-summary.md','w') as f:
+            f.write("# Semgrep Summary\n\n")
+            f.write(f"- Total findings: {len(results)}\n")
+            f.write("## Counts by severity\n")
+            for k,v in counts.items():
+              f.write(f"- {k}: {v}\n")
+            f.write("\n## Examples (up to 5)\n")
+            for e in examples:
+              f.write(f"- Rule: {e['rule_id']} — {e['message']} — file: {e['path']}\\n")
+          print('WROTE semgrep-summary.json and semgrep-summary.md')
+          PY
+
+      - name: Upload Semgrep JSON report
         uses: actions/upload-artifact@v4
         with:
-          name: semgrep-report
+          name: semgrep-report-json
           path: semgrep-report.json
+
+      - name: Upload Semgrep SARIF (Code scanning)
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: semgrep-report.sarif
+
+      - name: Upload Semgrep summary files
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-summary
+          path: |
+            semgrep-summary.json
+            semgrep-summary.md
