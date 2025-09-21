@@ -19,24 +19,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install node & npm deps
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: Install Node deps
+
+      - name: Install Node dependencies
         run: npm ci
 
-      - name: Install Semgrep CLI
+      - name: Install Semgrep
         run: |
           python -m pip install --upgrade pip
           pip install semgrep
 
-      - name: Run Semgrep (CI rules)
-        # usa regras públicas p/ci e as regras locais em .semgrep.yml (se existir)
+      - name: Run Semgrep (default CI rules)
         run: |
           semgrep --config p/ci --exclude node_modules --sarif semgrep.sarif || true
-          # se você tiver regras locais em .semgrep.yml, rode:
-          if [ -f .semgrep.yml ]; then semgrep --config .semgrep.yml --exclude node_modules --sarif semgrep_local.sarif || true; fi
 
       - name: Upload Semgrep SARIF to GitHub Code Scanning
         if: always()
@@ -44,17 +42,9 @@ jobs:
         with:
           sarif_file: semgrep.sarif
 
-      - name: Upload local Semgrep SARIF (if present)
-        if: always() && ( -f semgrep_local.sarif )
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: semgrep_local.sarif
-
-      - name: Save Semgrep artifacts (raw)
+      - name: Save Semgrep artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-results
-          path: |
-            semgrep.sarif
-            semgrep_local.sarif
+          path: semgrep.sarif

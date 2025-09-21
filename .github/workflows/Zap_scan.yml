@@ -7,38 +7,51 @@ on:
 
 jobs:
   zap-baseline:
-    name: ZAP Baseline scan
+    name: ZAP Baseline scan (local Expo web build)
     runs-on: ubuntu-latest
-    env:
-      TARGET_URL: ${{ secrets.STAGING_URL }} # configure esse secret com a URL de staging
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate TARGET_URL
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Expo web
+        run: npm run build:web || npx expo export:web
+
+      - name: Start local server
         run: |
-          if [ -z "${{ secrets.STAGING_URL }}" ]; then
-            echo "WARNING: secrets.STAGING_URL is empty. Set the secret or modify the workflow to build & serve web locally."; exit 1
-          fi
+          npm install -g http-server
+          nohup http-server web-build -p 3000 > server.log 2>&1 &
+
+      - name: Wait for server
+        run: |
+          for i in {1..10}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "Server is up!"
+              exit 0
+            fi
+            echo "Waiting for server..."
+            sleep 5
+          done
+          echo "Server failed to start"
+          exit 1
 
       - name: Run ZAP baseline scan
         id: zap
         uses: zaproxy/action-baseline@v0.14.0
         with:
-          target: ${{ secrets.STAGING_URL }}
-          # token: ${{ secrets.GITHUB_TOKEN }}   # opcional: para criar/atualizar issues
-          # cmd_options: '-a'                    # passe -a para atacar (full scan) se quiser
-          # rules_file_name: '.zap/rules.tsv'    # se tiver regras de ignore
-          fail_action: 'false' # Ajuste: 'true' para falhar workflow em alerts
+          target: "http://localhost:3000"
+          fail_action: false
 
-      - name: Download ZAP report (artifact)
+      - name: Upload ZAP report
         if: always()
-        uses: actions/download-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
-          name: zap_scan
-          path: ./zap-report || true
-
-      - name: Print summary
-        if: always()
-        run: |
-          echo "ZAP completed. Check workflow logs and repository issues (if configured)."
+          name: zap_report
+          path: zap_scan
