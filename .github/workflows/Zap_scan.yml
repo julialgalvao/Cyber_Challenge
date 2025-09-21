@@ -48,12 +48,16 @@ jobs:
         with:
           target: "http://localhost:3000"
           fail_action: false
+          # força saída em HTML na raiz do workspace
           cmd_options: '-a -r zap_report.html'
+
+      - name: List generated files (debug)
+        if: always()
+        run: ls -R
 
       - name: Upload ZAP report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: zap_report
-          path: zap_scan/zap_report.html
-
+          path: zap_report.html
