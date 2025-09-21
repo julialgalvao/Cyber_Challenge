@@ -50,13 +50,13 @@ jobs:
           fail_action: false
           cmd_options: '-a -r zap_report.html'
 
-      - name: List generated files (debug)
+      - name: List zap_scan contents (debug)
         if: always()
-        run: ls -R zap_scan
+        run: ls -R zap_scan || echo "zap_scan directory not found"
 
       - name: Upload ZAP report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: zap_report
-          path: zap_scan/zap_report.html
+          path: zap_scan/*.html
