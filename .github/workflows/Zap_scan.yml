@@ -1,131 +1,44 @@
-name: DAST - OWASP ZAP (Juice Shop)
+name: DAST - OWASP ZAP Baseline
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [main]
 
 jobs:
-  zap_scan:
+  zap-baseline:
+    name: ZAP Baseline scan
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-
+    env:
+      TARGET_URL: ${{ secrets.STAGING_URL }} # configure esse secret com a URL de staging
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start Juice Shop (docker)
+      - name: Validate TARGET_URL
         run: |
-          docker pull bkimminich/juice-shop:latest
-          docker run -d --name juice-shop -p 3000:3000 bkimminich/juice-shop:latest
-          echo "Waiting for juice-shop to be ready..."
-          # wait up to 60s for port to respond
-          for i in {1..12}; do
-            if curl -fsS http://localhost:3000/ >/dev/null 2>&1; then
-              echo "juice-shop is up"
-              exit 0
-            fi
-            echo "not ready yet ($i)..."
-            sleep 5
-          done
-          echo "Juice-shop did not start in time"; docker logs juice-shop || true; exit 1
+          if [ -z "${{ secrets.STAGING_URL }}" ]; then
+            echo "WARNING: secrets.STAGING_URL is empty. Set the secret or modify the workflow to build & serve web locally."; exit 1
+          fi
 
-      - name: Run ZAP Baseline Scan (non-blocking)
-        uses: zaproxy/action-baseline@v0.11.0
+      - name: Run ZAP baseline scan
+        id: zap
+        uses: zaproxy/action-baseline@v0.14.0
         with:
-          target: "http://localhost:3000"
-          # generate multiple output formats
-          reports: "json,html,md"
-          cmd_options: "-a"
-          rules_file_name: ".zap/rules.tsv"
-          # prevent ZAP from trying to create GitHub issues
-          allow_issue_writing: "false"
-        # do not fail the job on ZAP non-zero exit (we want reports even if vulnerabilities found)
-        continue-on-error: true
+          target: ${{ secrets.STAGING_URL }}
+          # token: ${{ secrets.GITHUB_TOKEN }}   # opcional: para criar/atualizar issues
+          # cmd_options: '-a'                    # passe -a para atacar (full scan) se quiser
+          # rules_file_name: '.zap/rules.tsv'    # se tiver regras de ignore
+          fail_action: 'false' # Ajuste: 'true' para falhar workflow em alerts
 
-      - name: Collect ZAP files (normalize names)
-        run: |
-          # the action typically writes files named report_json.json, report_html.html, report_md.md
-          # try to rename if present -> normalized names below
-          if [ -f report_json.json ]; then mv report_json.json zap-report.json; fi
-          if [ -f report_html.html ]; then mv report_html.html zap-report.html; fi
-          if [ -f report_md.md ]; then mv report_md.md zap-report.md; fi
-          # fallback: if ZAP created 'report.xml' or 'zap-report.html' handle them
-          if [ -f report.xml ]; then mv report.xml zap-report.xml; fi
-          echo "ZAP files in workspace:"
-          ls -lah || true
-
-      - name: Generate ZAP summary (counts by severity + example)
-        run: |
-          python3 - <<'PY'
-          import json,sys,os
-          # try JSON first
-          jname = None
-          for candidate in ('zap-report.json','report_json.json','report.json','report.json'):
-            if os.path.exists(candidate):
-              jname=candidate; break
-          # try common names
-          if jname is None and os.path.exists('report_json.json'):
-            jname='report_json.json'
-          summary = {"total_alerts":0,"counts":{"0":0,"1":0,"2":0,"3":0},"examples":[]}
-          if jname:
-            try:
-              data=json.load(open(jname))
-              sites = data.get('site',[])
-              total=0
-              counts={"0":0,"1":0,"2":0,"3":0}
-              examples=[]
-              for s in sites:
-                for a in s.get('alerts',[]):
-                  risk = a.get('riskcode','0')
-                  counts[str(risk)]=counts.get(str(risk),0)+1
-                  total+=1
-                  # add one example alert (first instance) if few examples
-                  if len(examples)<5:
-                    examples.append({
-                      "name": a.get('name'),
-                      "riskdesc": a.get('riskdesc'),
-                      "uri": a.get('instances',[{}])[0].get('uri'),
-                      "evidence": a.get('instances',[{}])[0].get('evidence'),
-                      "solution": a.get('solution')
-                    })
-              summary={"total_alerts":total,"counts":counts,"examples":examples}
-            except Exception as e:
-              summary={"error":"failed to parse json: "+str(e)}
-          else:
-            summary={"error":"no zap json report found"}
-          with open('zap-summary.json','w') as f:
-            json.dump(summary,f,indent=2)
-          # also write md
-          with open('zap-summary.md','w') as f:
-            f.write("# ZAP Summary\\n\\n")
-            if 'error' in summary:
-              f.write("Error generating summary: "+summary['error']+"\\n")
-            else:
-              f.write(f"- Total alerts: {summary['total_alerts']}\\n")
-              f.write("## Counts by riskcode (0=Info,1=Low,2=Medium,3=High)\\n")
-              for k in sorted(summary['counts'].keys(), key=int):
-                f.write(f"- {k}: {summary['counts'][k]}\\n")
-              f.write("\\n## Examples\\n")
-              for e in summary['examples']:
-                f.write(f"- {e['name']} — {e['riskdesc']} — {e['uri']} — evidence: {e.get('evidence')}\\n")
-          print('WROTE zap-summary.json and zap-summary.md')
-          PY
-
-      - name: Upload ZAP reports
-        uses: actions/upload-artifact@v4
+      - name: Download ZAP report (artifact)
+        if: always()
+        uses: actions/download-artifact@v4
         with:
-          name: zap-report
-          path: |
-            zap-report.html
-            zap-report.json
-            zap-report.md
-            zap-summary.json
-            zap-summary.md
+          name: zap_scan
+          path: ./zap-report || true
 
-      - name: Stop Juice Shop (cleanup)
+      - name: Print summary
         if: always()
         run: |
-          docker ps -a --filter "name=juice-shop" --format "{{.ID}} {{.Status}} {{.Names}}"
-          docker stop juice-shop || true
-          docker rm juice-shop || true
+          echo "ZAP completed. Check workflow logs and repository issues (if configured)."
