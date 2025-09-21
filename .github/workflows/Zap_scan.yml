@@ -48,7 +48,7 @@ jobs:
         with:
           target: "http://localhost:3000"
           fail_action: false
-          cmd_options: '-a -r zap_report.html'
+          cmd_options: '-a -r zap_scan/zap_report.html'
 
       - name: List zap_scan contents (debug)
         if: always()
