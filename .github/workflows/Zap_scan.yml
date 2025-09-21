@@ -47,7 +47,7 @@ jobs:
         with:
           target: "http://localhost:3000"
           fail_action: false
-          cmd_options: "-a"
+          cmd_options: "-a -r report_html.html"
 
       - name: List workspace (debug)
         if: always()
@@ -55,7 +55,8 @@ jobs:
 
       - name: Upload ZAP HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: action/ upload-artifact@v4
         with:
           name: zap-report
           path: report_html.html
+
