@@ -2,38 +2,25 @@ name: DAST - OWASP ZAP
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
 
 jobs:
   zap_scan:
     runs-on: ubuntu-latest
-    name: Run OWASP ZAP DAST
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # Sobe a aplicação-alvo (pode ser seu backend ou app de teste)
-      - name: Start test app (example Juice Shop)
-        run: |
-          docker run -d -p 3000:3000 bkimminich/juice-shop
-
-      # Espera app subir
-      - name: Wait for app
-        run: sleep 30
-
-      # Roda ZAP contra o app rodando
       - name: Run ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.9.0
+        uses: zaproxy/action-baseline@v0.11.0
         with:
           target: 'http://localhost:3000'
-          rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
 
-      # Publica report
       - name: Upload ZAP report
         uses: actions/upload-artifact@v4
         with:
-          name: zap-report
-          path: report_html.html
+          name: zap-report   # <-- nome válido
+          path: zap.out      # <-- saída gerada pelo ZAP
