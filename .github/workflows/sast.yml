@@ -1,21 +1,19 @@
-name: SAST - Semgrep
+name: Semgrep SAST
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
 
 jobs:
   semgrep:
-    name: Run Semgrep SAST
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -23,18 +21,11 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep
 
-      - name: Run Semgrep scan
-        run: |
-          semgrep --config=p/ci --json > semgrep-report.json
-          semgrep --config=p/ci --sarif > semgrep-report.sarif
+      - name: Run Semgrep SAST
+        run: semgrep --config=auto --json > semgrep-report.json
 
-      - name: Upload report (artifact)
+      - name: Upload Semgrep report
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-report
           path: semgrep-report.json
-
-      - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: semgrep-report.sarif
