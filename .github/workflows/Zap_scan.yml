@@ -7,7 +7,7 @@ on:
 
 jobs:
   zap-baseline:
-    name: ZAP Baseline scan (local Expo web build)
+    name: ZAP Baseline scan (local Expo export)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,13 +21,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Expo web
-        run: npm run build:web || npx expo export:web
+      - name: Export Expo app for web
+        run: npx expo export
 
       - name: Start local server
         run: |
           npm install -g http-server
-          nohup http-server web-build -p 3000 > server.log 2>&1 &
+          nohup http-server dist -p 3000 > server.log 2>&1 &
 
       - name: Wait for server
         run: |
