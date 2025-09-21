@@ -23,8 +23,8 @@ jobs:
         run: npm ci
 
       - name: Export Expo app for web
-        run: npx expo export --platform web -o dist
-
+        run: npx expo export --platform web --output-dir dist
+        
       - name: Start local server
         run: |
           npm install -g http-server
