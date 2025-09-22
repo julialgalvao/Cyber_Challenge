@@ -117,4 +117,6 @@ Aline Fernandes Zeppelini - RM97966
 
 Camilly Breitbach Ishida - RM551474
 
+Jessica Costacurta - RM99068
+
 Julia Leite Galvão - RM550201
