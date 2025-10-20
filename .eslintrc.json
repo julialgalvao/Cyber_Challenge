@@ -1,0 +1,14 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:jsx-a11y/recommended",
+    "plugin:security/recommended"
+  ],
+  "plugins": ["react", "jsx-a11y", "security"],
+  "rules": {
+    "no-eval": "error",
+    "security/detect-object-injection": "warn",
+    "react/prop-types": "off"
+  }
+}
