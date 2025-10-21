@@ -1,0 +1,7 @@
+version: v1.29.0
+ignore:
+  SNYK-JS-INFLIGHT-6095116:
+    - "*":
+        reason: "Dependência transitiva via glob@7 usada em tooling RN/Expo; sem upgrade disponível. Monitorado por Dependabot."
+        expires: 2025-12-31T00:00:00.000Z
+

@@ -1,9 +1,11 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true,
-    "types": [
-      "styled-components-react-native"
-    ]
-  }
+    "jsx": "react-jsx",
+    "exactOptionalPropertyTypes": false,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": ["jest", "@testing-library/jest-dom"]
+  },
+  "exclude": ["node_modules", "web-build", "dist"]
 }

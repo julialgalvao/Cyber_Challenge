@@ -1,8 +1,8 @@
-import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
-import LoginScreen from '../screens/LoginScreen';
-import SignupScreen from '../screens/SignupScreen';
-import HomeTabs from './HomeTabs';
+import React from "react";
+import { createStackNavigator } from "@react-navigation/stack";
+import LoginScreen from "../screens/LoginScreen";
+import SignupScreen from "../screens/SignupScreen";
+import HomeTabs from "./HomeTabs";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -19,6 +19,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 export default function AppNavigator({ initialRouteName }: AppNavigatorProps) {
   return (
     <Stack.Navigator
+      id={undefined}
       initialRouteName={initialRouteName}
       screenOptions={{ headerShown: false }}
     >

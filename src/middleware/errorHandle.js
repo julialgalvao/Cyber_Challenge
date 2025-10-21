@@ -1,5 +1,5 @@
 // src/middleware/errorHandler.js
-module.exports = function errorHandler(err, req, res, next) {
+module.exports = function errorHandler(err, req, res, _next) {
   // Logar internamente (sem vazar stack para o usuário)
   console.error(`[${new Date().toISOString()}] ERROR:`, err.message);
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Button, Alert, ScrollView } from "react-native";
-import { getConsent, setConsent, hasConsent } from "../../privacy/consent";
+import { getConsent, setConsent } from '../../privacy/consent';
 import { exportUserData, deleteUserData } from "../../privacy/dsr";
 import { getAudit } from "../../privacy/audit";
 

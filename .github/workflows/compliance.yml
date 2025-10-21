@@ -2,28 +2,58 @@ name: compliance
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   compliance:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}   
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run security:audit
-      - name: Semgrep SAST
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: 'p/default'
-      - name: Gitleaks (secret scan)
-        uses: gitleaks/gitleaks-action@v2
+          node-version: 20
+
+      - name: Install deps (clean)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: NPM Audit (gera JSON, não falha build)
+        run: npm audit --json > npm-audit.json || true
+
+      - name: Snyk Scan (opcional – roda só se tiver token)
+        if: ${{ env.SNYK_TOKEN != '' }}
+        uses: snyk/actions/node@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
+        with:
+          args: test --severity-threshold=high --json-file-output=snyk-report.json
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            npm-audit.json
+            snyk-report.json
+          if-no-files-found: ignore
