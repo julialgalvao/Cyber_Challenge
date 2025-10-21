@@ -120,3 +120,7 @@ Camilly Breitbach Ishida - RM551474
 Jessica Costacurta - RM99068
 
 Julia Leite Galvão - RM550201
+
+
+## Privacy Center
+Abra a tela `src/screens/PrivacyCenter/index.tsx` e adicione ao seu `AppNavigator` para permitir que o usuário gerencie direitos do titular (LGPD).

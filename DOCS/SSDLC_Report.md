@@ -1,9 +1,9 @@
-# SSDLC - Relatório Técnico Automatizado (Sprint 4)
+# SSDLC 
 
 **Projeto:** Cyber_Challenge - InvestBot  
 **Turma:** 3ESR  
 **Disciplina:** Cybersecurity  
-**Sprint:** 4 - Tarefa 1 (SSDLC Automatizado)
+**Sprint:** 4 - Tarefa 1
 
 ## Objetivo
 Implementar práticas de codificação segura (sanitização, autenticação e tratamento de erros) com validação automatizada via GitHub Actions.
